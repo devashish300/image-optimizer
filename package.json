@@ -1,0 +1,34 @@
+{
+  "name": "image-optimizer",
+  "version": "1.0.0",
+  "description": "Image optimization microservice using Express and Sharp",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "setup:local": "node scripts/setup-local-s3.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1078.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.0",
+    "@types/supertest": "^6.0.3",
+    "aws-sdk-client-mock": "^4.1.0",
+    "supertest": "^7.1.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
+  }
+}
