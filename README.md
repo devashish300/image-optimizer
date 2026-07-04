@@ -35,7 +35,31 @@ The S3 object is piped through a Sharp transform stream directly into the HTTP r
 
 **Responses:** `200` optimized image · `400` invalid parameters · `404` key not found in S3 · `500` processing failure.
 
-Successful responses include `Cache-Control: public, max-age=31536000, immutable` — a given URL always produces the same output, so CDNs and browsers can cache indefinitely.
+Successful responses include `Cache-Control: public, max-age=31536000, immutable` — a given URL always produces the same output, so CDNs and browsers can cache indefinitely. An `X-Cache: HIT | MISS` header reports whether the response came from the in-memory cache.
+
+## Caching strategy
+
+Two layers:
+
+1. **HTTP / CDN layer** — every response carries `Cache-Control: public, max-age=31536000, immutable`. A given URL always produces identical bytes, so browsers and CDNs can cache for a year without revalidation.
+2. **In-memory LRU** — processed outputs are cached in-process (100 MB budget, 5 MB per-item cap, least-recently-used eviction). Hot images on repeat requests skip S3 and Sharp entirely and are served from memory (`X-Cache: HIT`). Outputs over 5 MB are streamed through without being cached.
+
+The LRU is per-instance; running multiple replicas would warrant a shared cache (Redis) or relying purely on the CDN layer.
+
+## Logging & observability
+
+Every request logs one line with method, path, status, and duration:
+
+```
+GET /images/sample.jpg?w=300&format=webp 200 184.2ms
+```
+
+Every image operation additionally logs processing stats — bytes in (original from S3), bytes out (optimized), processing time, and cache result:
+
+```
+[image] sample.jpg webp w=300 h=- q=80 in=248301B out=18450B 179ms cache=MISS
+[image] sample.jpg webp w=300 h=- q=80 out=18450B 1ms cache=HIT
+```
 
 ## Getting started (local dev with MinIO)
 
@@ -76,7 +100,7 @@ Try it: <http://localhost:3000/images/sample.jpg?w=300&format=webp>
 npm test
 ```
 
-Vitest + Supertest, with the S3 client mocked (`aws-sdk-client-mock`) — no network or Docker needed. Covers the streamed pipeline end-to-end (real Sharp processing on a real image), resize/aspect-ratio behavior, format conversion, cache headers, nested keys, parameter validation, and S3 error mapping.
+Vitest + Supertest, with the S3 client mocked (`aws-sdk-client-mock`) — no network or Docker needed. Covers the streamed pipeline end-to-end (real Sharp processing on a real image), resize/aspect-ratio behavior, format conversion, cache headers, LRU cache hits/misses and key normalization, request/stats logging, nested keys, parameter validation, and S3 error mapping.
 
 ## Production build
 
@@ -90,4 +114,4 @@ npm start       # runs dist/server.js
 - **Streaming over buffering** — S3 → Sharp → response is a single pipe. Errors mid-stream after headers are sent destroy the connection rather than sending a corrupt 200.
 - **Dimension cap (4096)** — prevents a `?w=999999` request from exhausting CPU/memory.
 - **Shared S3 client** — one client instance reused across requests.
-- **No result caching layer** — in production this service should sit behind a CDN (the immutable cache headers are designed for that); a Redis/disk cache would be the next addition for CDN-miss traffic.
+- **Two-layer caching** — CDN/browser via immutable cache headers, plus an in-process byte-budgeted LRU for CDN-miss traffic. A shared Redis cache would be the next step for multi-instance deployments.
