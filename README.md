@@ -102,12 +102,34 @@ npm test
 
 Vitest + Supertest, with the S3 client mocked (`aws-sdk-client-mock`) — no network or Docker needed. Covers the streamed pipeline end-to-end (real Sharp processing on a real image), resize/aspect-ratio behavior, format conversion, cache headers, LRU cache hits/misses and key normalization, request/stats logging, nested keys, parameter validation, and S3 error mapping.
 
+## Run with Docker
+
+The whole stack (service + MinIO) runs in containers:
+
+```bash
+docker compose up --build
+```
+
+The app is built with a multi-stage Dockerfile (TypeScript compiled in a build stage, production image ships only compiled JS + prod dependencies). Inside the compose network the service reaches MinIO at `http://minio:9000`; from your machine everything stays on the usual ports (app 3000, MinIO 9000/9001).
+
 ## Production build
 
 ```bash
 npm run build   # compiles TypeScript to dist/
 npm start       # runs dist/server.js
 ```
+
+## Assumptions & edge case handling
+
+- **No authentication** — per the spec, the service assumes internal use (e.g. behind a CDN/gateway). Rate limiting and auth would be added at the gateway layer before public exposure.
+- **Missing S3 key** → `404` with a JSON error; unexpected S3 failures → `500`.
+- **Invalid parameters** (non-numeric, zero/negative, `q` outside 1–100, unknown `format`) → `400` with a descriptive message, rejected before S3 is ever contacted.
+- **Oversized dimension requests** — `w`/`h` are capped at 4096 to prevent memory/CPU exhaustion from a single malicious request.
+- **`jpg` vs `jpeg`** — treated as the same format (normalized), including in the cache key.
+- **Corrupt/non-image objects in the bucket** — Sharp fails mid-stream; if headers were already sent the connection is destroyed rather than delivering a corrupt image with a 200 status.
+- **Very large outputs** (>5 MB) — streamed to the client but not cached, so one huge image can't evict the whole cache.
+- **No enlargement guard is intentional** — `fit: inside` preserves aspect ratio; upscaling beyond source size is allowed since consumers may legitimately request it.
+- **Quality default** — `q` defaults to 80 when omitted.
 
 ## Design notes & tradeoffs
 
