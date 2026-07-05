@@ -61,28 +61,31 @@ Every image operation additionally logs processing stats — bytes in (original 
 [image] sample.jpg webp w=300 h=- q=80 out=18450B 1ms cache=HIT
 ```
 
-## Getting started (local dev with MinIO)
+## Getting started
 
-Requires Node 20+ and Docker.
+Requires Node 20+ and Docker. **No configuration or credentials needed** — the stack runs against a bundled local MinIO (S3-compatible) container out of the box.
 
 ```bash
-# 1. Install dependencies
+# 1. Install dependencies (needed for the seed script)
 npm install
 
-# 2. Start MinIO (local S3-compatible storage)
-docker compose up -d
+# 2. Start the whole stack (app + MinIO)
+docker compose up --build -d
 
-# 3. Configure environment
-cp .env.example .env   # defaults already match the MinIO container
-
-# 4. Create the bucket and upload a sample image
+# 3. Create the bucket and upload a sample image
 npm run setup:local
-
-# 5. Run the dev server
-npm run dev
 ```
 
 Try it: <http://localhost:3000/images/sample.jpg?w=300&format=webp>
+
+### Dev mode (hot reload, app outside Docker)
+
+```bash
+cp .env.example .env          # defaults match the MinIO container
+docker compose up -d minio    # start only MinIO
+npm run setup:local
+npm run dev
+```
 
 ### Environment variables
 
@@ -110,10 +113,10 @@ The whole stack (service + MinIO) runs in containers:
 docker compose up --build
 ```
 
-The app is built with a multi-stage Dockerfile (TypeScript compiled in a build stage, production image ships only compiled JS + prod dependencies). The app container reads its configuration from your `.env` file:
+The app is built with a multi-stage Dockerfile (TypeScript compiled in a build stage, production image ships only compiled JS + prod dependencies). Configuration:
 
-- **Real AWS S3** — omit `S3_ENDPOINT` from `.env`; the service talks directly to AWS using your credentials.
-- **Local MinIO** — set `S3_ENDPOINT=http://minio:9000` (the container hostname, not localhost, since the app runs inside the compose network).
+- **Zero config (default)** — with no `.env` file, the app container uses the bundled MinIO with its local default credentials. Works on a fresh clone.
+- **Real AWS S3** — create a `.env` with real credentials and set `S3_ENDPOINT=` (empty); the service then talks directly to AWS.
 
 From your machine everything stays on the usual ports (app 3000, MinIO 9000/9001).
 

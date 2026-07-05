@@ -3,13 +3,17 @@ services:
     build: .
     ports:
       - "3000:3000"
-    # Reads credentials/bucket/region from your .env file.
-    # - Real AWS S3: no S3_ENDPOINT line in .env — that's all it takes.
-    # - Local MinIO:  set S3_ENDPOINT=http://minio:9000 in .env
-    #   ("minio" is the container hostname; localhost won't work from inside
-    #   the app container).
-    env_file:
-      - .env
+    # If a .env file exists in the project root, docker compose reads it
+    # automatically and its values are used below. Without a .env the MinIO
+    # defaults apply, so a fresh clone runs with zero configuration.
+    # For real AWS S3: put real credentials in .env and set "S3_ENDPOINT="
+    # (empty) so the app talks directly to AWS.
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY-minioadmin}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET-my-images}
+      - AWS_REGION=${AWS_REGION-us-east-1}
+      - S3_ENDPOINT=${S3_ENDPOINT-http://minio:9000}
     depends_on:
       - minio
 

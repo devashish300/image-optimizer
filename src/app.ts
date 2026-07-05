@@ -73,7 +73,7 @@ export const imageCache = new LruByteCache();
 // not recreated per request (that would be wasteful)
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
-  endpoint: process.env.S3_ENDPOINT, // only used for MinIO/local dev; omit for real AWS
+  endpoint: process.env.S3_ENDPOINT || undefined, // only for MinIO/local dev; empty/unset means real AWS
   forcePathStyle: !!process.env.S3_ENDPOINT, // path-style only needed for MinIO
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
