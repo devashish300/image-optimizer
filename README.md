@@ -78,6 +78,18 @@ npm run setup:local
 
 Try it: <http://localhost:3000/images/sample.jpg?w=300&format=webp>
 
+### Images available in the bucket
+
+The seed step uploads these images to the `my-images` bucket:
+
+| Key | Try |
+|---|---|
+| `sample.jpg` | `/images/sample.jpg?w=300&format=webp&q=70` |
+| `car.jpg` | `/images/car.jpg?w=500&format=webp` |
+| `turtle.jpg` | `/images/turtle.jpg?h=250&format=avif&q=60` |
+
+**Please do try your own images too** — drop any image into `scripts/seed-images/` and re-run `npm run setup:local`, or upload directly via the MinIO console at <http://localhost:9001> (login `minioadmin` / `minioadmin`). Then request it as `/images/<filename>` with any combination of `w`, `h`, `format`, and `q`. Watch the server logs to see the before/after byte sizes and cache HIT/MISS behavior on repeat requests.
+
 ### Dev mode (hot reload, app outside Docker)
 
 ```bash
