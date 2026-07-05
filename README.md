@@ -110,7 +110,12 @@ The whole stack (service + MinIO) runs in containers:
 docker compose up --build
 ```
 
-The app is built with a multi-stage Dockerfile (TypeScript compiled in a build stage, production image ships only compiled JS + prod dependencies). Inside the compose network the service reaches MinIO at `http://minio:9000`; from your machine everything stays on the usual ports (app 3000, MinIO 9000/9001).
+The app is built with a multi-stage Dockerfile (TypeScript compiled in a build stage, production image ships only compiled JS + prod dependencies). The app container reads its configuration from your `.env` file:
+
+- **Real AWS S3** — omit `S3_ENDPOINT` from `.env`; the service talks directly to AWS using your credentials.
+- **Local MinIO** — set `S3_ENDPOINT=http://minio:9000` (the container hostname, not localhost, since the app runs inside the compose network).
+
+From your machine everything stays on the usual ports (app 3000, MinIO 9000/9001).
 
 ## Production build
 

@@ -3,16 +3,17 @@ services:
     build: .
     ports:
       - "3000:3000"
-    environment:
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
-      - AWS_S3_BUCKET=my-images
-      - AWS_REGION=us-east-1
-      # inside the compose network the hostname is "minio", not localhost
-      - S3_ENDPOINT=http://minio:9000
+    # Reads credentials/bucket/region from your .env file.
+    # - Real AWS S3: no S3_ENDPOINT line in .env — that's all it takes.
+    # - Local MinIO:  set S3_ENDPOINT=http://minio:9000 in .env
+    #   ("minio" is the container hostname; localhost won't work from inside
+    #   the app container).
+    env_file:
+      - .env
     depends_on:
       - minio
 
+  # Local S3-compatible storage for development/testing without an AWS account
   minio:
     image: minio/minio
     ports:
